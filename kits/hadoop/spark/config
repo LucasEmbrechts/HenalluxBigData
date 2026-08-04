@@ -1,0 +1,48 @@
+CORE-SITE.XML_fs.defaultFS=hdfs://namenode
+CORE-SITE.XML_hadoop.http.staticuser.user=root
+
+HDFS-SITE.XML_dfs.namenode.rpc-address=namenode:8020
+HDFS-SITE.XML_dfs.replication=1
+
+# Le $$ n'est pas une faute de frappe : Docker Compose remplace "$VAR" par la
+# valeur trouvee sur la machine hote (donc par du vide ici). "$$" lui dit de
+# laisser passer un "$" litteral, pour que Hadoop resolve la variable lui-meme
+# dans le conteneur.
+MAPRED-SITE.XML_mapreduce.framework.name=yarn
+MAPRED-SITE.XML_yarn.app.mapreduce.am.env=HADOOP_MAPRED_HOME=$$HADOOP_HOME
+MAPRED-SITE.XML_mapreduce.map.env=HADOOP_MAPRED_HOME=$$HADOOP_HOME
+MAPRED-SITE.XML_mapreduce.reduce.env=HADOOP_MAPRED_HOME=$$HADOOP_HOME
+
+YARN-SITE.XML_yarn.resourcemanager.hostname=resourcemanager
+YARN-SITE.XML_yarn.nodemanager.aux-services=mapreduce_shuffle
+
+# Sur un portable, les conteneurs YARN depassent vite les quotas memoire.
+# On desactive les deux gendarmes, sinon le NodeManager tue les taches.
+YARN-SITE.XML_yarn.nodemanager.pmem-check-enabled=false
+YARN-SITE.XML_yarn.nodemanager.vmem-check-enabled=false
+
+# Ce que le NodeManager a le droit de distribuer. Par defaut Hadoop annonce
+# 8 Go, ce qu'une machine de TP n'a generalement pas : YARN accepterait alors
+# des jobs que la machine ne peut pas honorer. Docker Desktop tourne souvent
+# avec 4 Go au total, dont il faut retirer les JVM du NameNode, du DataNode,
+# du ResourceManager et du NodeManager : on en annonce donc 3.
+YARN-SITE.XML_yarn.nodemanager.resource.memory-mb=3072
+
+# Taille maximale d'UN conteneur. Si vous demandez plus (par exemple
+# --executor-memory 2g), YARN refuse avec un message clair plutot que de
+# faire ramer toute la machine.
+YARN-SITE.XML_yarn.scheduler.maximum-allocation-mb=1536
+
+# Par defaut, YARN ne reserve que 10 % du cluster aux ApplicationMasters.
+# Sur un cluster d'une seule machine, cela ne suffit meme pas a demarrer un
+# seul AM : l'application reste bloquee en ACCEPTED pour toujours. On monte
+# a 50 %.
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.maximum-am-resource-percent=0.5
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.resource-calculator=org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.queues=default
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.capacity=100
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.maximum-capacity=100
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.user-limit-factor=1
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.state=RUNNING
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.acl_submit_applications=*
+CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.acl_administer_queue=*

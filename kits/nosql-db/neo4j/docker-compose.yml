@@ -1,0 +1,28 @@
+# Kit Neo4j — base de donnees NoSQL orientee graphe.
+# Version figee volontairement : ne pas utiliser :latest
+
+services:
+
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: neo4j
+    ports:
+      - "7474:7474"   # interface web (Neo4j Browser)
+      - "7687:7687"   # port client Bolt (cypher-shell, applications)
+    environment:
+      # Pas de mot de passe : c'est un kit de cours sur un poste local.
+      # A ne jamais faire ailleurs.
+      NEO4J_AUTH: "none"
+      # Neo4j reserve par defaut beaucoup de memoire. On le bride pour tenir
+      # dans les ~4 Go d'un Docker Desktop standard.
+      NEO4J_server_memory_heap_max__size: "512M"
+      NEO4J_server_memory_pagecache_size: "256M"
+    volumes:
+      # Neo4j ne lit les CSV que depuis ce repertoire precis.
+      # Pas de ":ro" : Neo4j ajuste les droits du dossier au demarrage et
+      # refuse de demarrer s'il ne peut pas ecrire dedans.
+      - ./data:/var/lib/neo4j/import
+      - neo4j-data:/data     # la persistance du graphe
+
+volumes:
+  neo4j-data:

@@ -1,0 +1,25 @@
+# Kit Redis — base de donnees NoSQL cle/valeur, en memoire.
+# Version figee volontairement : ne pas utiliser :latest
+
+services:
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"     # port client (redis-cli, applications)
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./data:/kit:ro        # le CSV et le script de chargement (lecture seule)
+      - redis-data:/data      # la persistance de Redis
+
+  redisinsight:
+    image: redis/redisinsight:2.70
+    container_name: redisinsight
+    ports:
+      - "5540:5540"     # interface web
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:

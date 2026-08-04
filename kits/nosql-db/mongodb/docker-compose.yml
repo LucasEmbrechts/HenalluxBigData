@@ -1,0 +1,27 @@
+# Kit MongoDB — base de donnees NoSQL orientee documents.
+# Version figee volontairement : ne pas utiliser :latest
+
+services:
+
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    ports:
+      - "27017:27017"   # port client (mongosh, applications)
+    volumes:
+      - ./data:/kit:ro        # le CSV a importer (lecture seule)
+      - mongo-data:/data/db   # la persistance de MongoDB
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    ports:
+      - "8081:8081"     # interface web
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:

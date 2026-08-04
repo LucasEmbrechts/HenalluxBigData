@@ -1,0 +1,76 @@
+# Cluster HDFS + YARN, avec Spark soumis a YARN.
+#
+# Le calcul ne tourne JAMAIS dans le conteneur ou l'on tape la commande :
+# spark-client ne fait que soumettre, le NodeManager execute.
+
+services:
+
+  namenode:
+    image: apache/hadoop:3.4.0
+    hostname: namenode
+    container_name: namenode
+    user: root
+    command: ["hdfs", "namenode"]
+    ports:
+      - "9870:9870"      # interface web HDFS
+    env_file:
+      - ./config
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+    volumes:
+      - ./data:/data     # jeux de donnees fournis
+
+  datanode:
+    image: apache/hadoop:3.4.0
+    container_name: datanode
+    user: root
+    command: ["hdfs", "datanode"]
+    env_file:
+      - ./config
+    depends_on:
+      - namenode
+
+  resourcemanager:
+    image: apache/hadoop:3.4.0
+    hostname: resourcemanager
+    container_name: resourcemanager
+    user: root
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - "8088:8088"      # interface web YARN (suivi des applications)
+    env_file:
+      - ./config
+    depends_on:
+      - namenode
+
+  nodemanager:
+    image: apache/hadoop:3.4.0
+    container_name: nodemanager
+    user: root
+    command: ["yarn", "nodemanager"]
+    ports:
+      - "8042:8042"      # interface web du NodeManager
+    env_file:
+      - ./config
+    depends_on:
+      - resourcemanager
+
+  spark-client:
+    build: .
+    image: henallux/spark-client:3.5.1
+    hostname: spark-client
+    container_name: spark-client
+    user: root
+    command: ["tail", "-f", "/dev/null"]   # conteneur qui reste vivant
+    ports:
+      - "4040:4040"      # interface de l'application Spark en cours
+    env_file:
+      - ./config
+    volumes:
+      - ./data:/data     # jeux de donnees fournis
+      # On monte ./job en entier, pas ./job/target : "mvn clean" supprime et
+      # recree target/, ce qui casserait le montage jusqu'au redemarrage.
+      - ./job:/job       # le code source et le .jar compile
+    depends_on:
+      - namenode
+      - resourcemanager

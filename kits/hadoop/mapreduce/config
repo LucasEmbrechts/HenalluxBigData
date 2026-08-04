@@ -1,0 +1,21 @@
+CORE-SITE.XML_fs.defaultFS=hdfs://namenode
+CORE-SITE.XML_hadoop.http.staticuser.user=root
+
+HDFS-SITE.XML_dfs.namenode.rpc-address=namenode:8020
+HDFS-SITE.XML_dfs.replication=1
+
+# Le $$ n'est pas une faute de frappe : Docker Compose remplace "$VAR" par la
+# valeur trouvee sur la machine hote (donc par du vide ici). "$$" lui dit de
+# laisser passer un "$" litteral, pour que Hadoop resolve la variable lui-meme
+# dans le conteneur. Sans cela, l'ApplicationMaster ne trouve pas les classes
+# MapReduce et le job echoue sur "Could not find or load main class
+# org.apache.hadoop.mapreduce.v2.app.MRAppMaster".
+MAPRED-SITE.XML_mapreduce.framework.name=yarn
+MAPRED-SITE.XML_yarn.app.mapreduce.am.env=HADOOP_MAPRED_HOME=$$HADOOP_HOME
+MAPRED-SITE.XML_mapreduce.map.env=HADOOP_MAPRED_HOME=$$HADOOP_HOME
+MAPRED-SITE.XML_mapreduce.reduce.env=HADOOP_MAPRED_HOME=$$HADOOP_HOME
+
+YARN-SITE.XML_yarn.resourcemanager.hostname=resourcemanager
+YARN-SITE.XML_yarn.nodemanager.aux-services=mapreduce_shuffle
+YARN-SITE.XML_yarn.nodemanager.pmem-check-enabled=false
+YARN-SITE.XML_yarn.nodemanager.vmem-check-enabled=false
