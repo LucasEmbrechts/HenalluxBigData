@@ -49,8 +49,8 @@ docker exec mongo mongoimport --db bigdata --collection releves --type csv --hea
 Vous devez lire `5000 document(s) imported successfully`.
 
 Le fichier de départ est [data/trajets.csv](data/trajets.csv) : 5 000 relevés au
-format `camion_id,vitesse,temp_moteur`, les mêmes que dans les kits Hadoop et
-Redis.
+format `camion_id,vitesse,temp_moteur`, les mêmes que dans les kits Hadoop,
+Redis et Cassandra.
 
 Décortiquons la commande :
 

@@ -50,7 +50,8 @@ Vous devez lire `errors: 0, replies: 5000`, puis `Termine.` et le nombre de
 clés : **5000**.
 
 Le fichier de départ est [data/trajets.csv](data/trajets.csv) : 5 000 relevés au
-format `camion_id,vitesse,temp_moteur`, les mêmes que dans les kits Hadoop.
+format `camion_id,vitesse,temp_moteur`, les mêmes que dans les kits Hadoop,
+MongoDB et Cassandra.
 
 Ouvrez maintenant [data/charger.sh](data/charger.sh) et lisez-le, il fait dix
 lignes. Le point important est là :

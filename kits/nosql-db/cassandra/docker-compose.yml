@@ -1,0 +1,79 @@
+# Kit Cassandra — base de donnees NoSQL orientee colonnes.
+# Version figee volontairement : ne pas utiliser :latest
+#
+# Trois noeuds identiques : il n'y a pas de maitre. C'est la difference
+# essentielle avec HDFS, ou le NameNode est unique et indispensable.
+#
+# Les noeuds doivent demarrer L'UN APRES L'AUTRE : deux noeuds qui rejoignent
+# l'anneau en meme temps se disputent les memes jetons. D'ou les healthcheck
+# et les depends_on en chaine ci-dessous.
+
+services:
+
+  cassandra-1:
+    image: cassandra:5.0
+    container_name: cassandra-1
+    hostname: cassandra-1
+    ports:
+      - "9042:9042"     # port client (cqlsh, applications)
+    environment:
+      CASSANDRA_CLUSTER_NAME: "camions"
+      CASSANDRA_SEEDS: "cassandra-1"
+      MAX_HEAP_SIZE: "512M"   # sans cela, Cassandra reclame le quart de la RAM
+      HEAP_NEWSIZE: "128M"
+    volumes:
+      - ./data:/kit:ro                 # le CSV et le script de chargement
+      - cassandra-1-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE keyspaces' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+
+  cassandra-2:
+    image: cassandra:5.0
+    container_name: cassandra-2
+    hostname: cassandra-2
+    environment:
+      CASSANDRA_CLUSTER_NAME: "camions"
+      CASSANDRA_SEEDS: "cassandra-1"
+      MAX_HEAP_SIZE: "512M"
+      HEAP_NEWSIZE: "128M"
+    volumes:
+      - cassandra-2-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE keyspaces' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+
+  cassandra-3:
+    image: cassandra:5.0
+    container_name: cassandra-3
+    hostname: cassandra-3
+    environment:
+      CASSANDRA_CLUSTER_NAME: "camions"
+      CASSANDRA_SEEDS: "cassandra-1"
+      MAX_HEAP_SIZE: "512M"
+      HEAP_NEWSIZE: "128M"
+    volumes:
+      - cassandra-3-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE keyspaces' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+    depends_on:
+      cassandra-2:
+        condition: service_healthy
+
+volumes:
+  cassandra-1-data:
+  cassandra-2-data:
+  cassandra-3-data:
