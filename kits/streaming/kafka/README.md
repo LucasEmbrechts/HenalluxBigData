@@ -7,14 +7,19 @@ Dans les autres kits, les données sont **au repos** : un fichier que l'on charg
 **Kafka se place entre les deux** : d'un côté des programmes qui **envoient** des messages, de l'autre des programmes qui les **lisent**. Kafka garde les messages en attendant qu'on les lise.
 
 ```
-Wikipédia  ──→  producteur.py  ──→  KAFKA  ──→  consommateur.py
- (internet)       (envoie)                        (lit et compte)
+                                          ┌──→  consommateur.py  (compte et affiche)
+Wikipédia  ──→  producteur.py  ──→  KAFKA ┤
+ (internet)       (envoie)                └──→  archiveur.py  ──→  MongoDB
+                                                  (enregistre)      (base NoSQL)
 ```
 
 ## Prérequis
 
 - **Docker Desktop** ([docker.com](https://www.docker.com/products/docker-desktop/))
 - Une connexion internet (le flux Wikipédia arrive en direct)
+- ~2 Go de RAM disponibles pour Docker
+
+> Si le kit `nosql-db/mongodb` tourne, arrêtez-le d'abord (`docker compose down` dans son dossier) : les deux kits utilisent les mêmes noms de conteneurs `mongo` et `mongo-express`.
 
 ### Note pour Windows
 
@@ -32,12 +37,14 @@ Ouvrez un terminal **dans le dossier de ce kit**, puis :
 docker compose up -d
 ```
 
-Deux conteneurs démarrent :
+Quatre conteneurs démarrent :
 
 | Conteneur | Rôle |
 |---|---|
 | `kafka` | le serveur Kafka : il reçoit les messages et les garde sur disque |
 | `kafka-ui` | une interface web pour voir ce qui se passe dans Kafka |
+| `mongo` | une base MongoDB, qui servira à la section 6 |
+| `mongo-express` | une interface web pour explorer MongoDB |
 
 ---
 
@@ -62,7 +69,7 @@ Vous devez lire `Created topic wikipedia.`
 
 > `--bootstrap-server localhost:9092` revient dans toutes les commandes : c'est l'adresse du serveur Kafka. Si vous lisez `Connection refused`, Kafka n'a pas fini de démarrer : attendez dix secondes et recommencez.
 
-`--partitions 3` découpe le topic en **trois morceaux**, appelés **partitions**. On verra à la section 6 à quoi ça sert.
+`--partitions 3` découpe le topic en **trois morceaux**, appelés **partitions**. On verra à la section 7 à quoi ça sert.
 
 ---
 
@@ -171,7 +178,101 @@ C'est Kafka qui s'en souvient. Le consommateur appartient à un **groupe**, nomm
 
 ---
 
-## 6. Plusieurs consommateurs
+## 6. Enregistrer les messages dans une base NoSQL
+
+`consommateur.py` compte en mémoire : dès qu'on l'arrête, tout est perdu. Dans un vrai projet, un consommateur **enregistre** les messages dans une base, où ils restent et où l'on peut les interroger.
+
+C'est ce que fait [programmes/archiveur.py](programmes/archiveur.py) : il lit le topic `wikipedia` et écrit chaque modification dans **MongoDB**.
+
+Laissez tourner le producteur. Dans un nouveau terminal, lancez l'archiveur :
+
+```bash
+docker compose run --rm archiveur
+```
+
+```
+En attente de messages... (Ctrl+C pour arreter)
+1828 modifications enregistrees dans MongoDB
+2014 modifications enregistrees dans MongoDB
+...
+```
+
+Ouvrez `archiveur.py`. Par rapport à `consommateur.py`, il n'y a que deux nouveautés :
+
+```python
+collection = MongoClient(MONGO)["wikipedia"]["modifications"]   # se connecter à MongoDB
+...
+collection.insert_one(modification)                              # enregistrer le message
+```
+
+Le message Kafka est déjà du JSON : il devient **tel quel** un document MongoDB. La base `wikipedia` et la collection `modifications` sont créées automatiquement au premier document.
+
+> **Pourquoi l'archiveur a-t-il enregistré des milliers de messages dès le départ ?** Il appartient à un **autre groupe** que `consommateur.py` : `archiveur` au lieu de `compteur`. Kafka retient la position de chaque groupe séparément. Ce nouveau groupe n'avait encore rien lu, il a donc commencé au début du topic. Les deux programmes reçoivent **tous** les messages, chacun de leur côté, sans se gêner.
+
+### Interroger la base
+
+Ouvrez le shell de MongoDB, directement sur la base `wikipedia` :
+
+```bash
+docker exec -it mongo mongosh wikipedia
+```
+
+Puis tapez les requêtes suivantes, une par une.
+
+Le nombre de modifications enregistrées — relancez-la, il augmente pendant que l'archiveur tourne :
+
+```js
+db.modifications.countDocuments()
+```
+
+Les 3 dernières modifications du Wikipédia en français :
+
+```js
+db.modifications.find({ wiki: "frwiki" }).sort({ horodatage: -1 }).limit(3)
+```
+
+```
+[
+  {
+    _id: ObjectId('6aaa93fd899b48605e85160b'),
+    wiki: 'frwiki',
+    titre: 'Matthieu Pigasse',
+    utilisateur: 'BoetBoet',
+    robot: false,
+    type: 'edit',
+    horodatage: 1789563895
+  },
+  ...
+]
+```
+
+Chaque document contient les champs du message Kafka, plus un `_id` ajouté automatiquement par MongoDB.
+
+Les 5 wikis les plus modifiés — le calcul de `consommateur.py`, mais fait cette fois par la base, sur **toutes** les données enregistrées :
+
+```js
+db.modifications.aggregate([ { $group: { _id: "$wiki", total: { $sum: 1 } } }, { $sort: { total: -1 } }, { $limit: 5 } ])
+```
+
+```
+[
+  { _id: 'commonswiki', total: 2373 },
+  { _id: 'wikidatawiki', total: 1108 },
+  { _id: 'arwiktionary', total: 754 },
+  { _id: 'enwiki', total: 583 },
+  { _id: 'kowiki', total: 206 }
+]
+```
+
+Quittez le shell avec `exit`.
+
+Vous pouvez aussi parcourir les documents à la souris : ouvrez [http://localhost:8081](http://localhost:8081), puis la base **wikipedia** et la collection **modifications**.
+
+Arrêtez l'archiveur (`Ctrl+C`) puis relancez-le : comme `consommateur.py`, il reprend là où il s'était arrêté. Mais cette fois, **rien n'est perdu** : les documents déjà enregistrés sont toujours dans MongoDB.
+
+---
+
+## 7. Plusieurs consommateurs
 
 Quand un seul programme ne suffit plus à traiter tous les messages, on en lance plusieurs **dans le même groupe**, et Kafka répartit le travail entre eux.
 
@@ -202,7 +303,7 @@ C'est une situation très courante avec de vraies données : le choix de la clé
 
 ---
 
-## 7. L'interface web
+## 8. L'interface web
 
 Ouvrez [http://localhost:8080](http://localhost:8080), puis cliquez sur le cluster **wikipedia** :
 
@@ -215,35 +316,36 @@ Ouvrez [http://localhost:8080](http://localhost:8080), puis cliquez sur le clust
 ## Ce qu'il faut retenir
 
 1. **Kafka transporte des données en mouvement**, entre des producteurs qui envoient et des consommateurs qui lisent. Les deux ne se connaissent pas.
-2. **Lire un message ne le supprime pas.** Plusieurs programmes peuvent lire le même topic.
-3. **Kafka retient où chaque groupe en est.** Un consommateur arrêté reprend là où il s'était arrêté.
-4. **Les partitions permettent de partager le travail** entre plusieurs consommateurs d'un même groupe.
+2. **Kafka n'est pas une base de données.** Pour garder et interroger les données, un consommateur les enregistre dans une base (ici MongoDB).
+3. **Lire un message ne le supprime pas.** Plusieurs programmes, dans des groupes différents, peuvent lire le même topic.
+4. **Kafka retient où chaque groupe en est.** Un consommateur arrêté reprend là où il s'était arrêté.
+5. **Les partitions permettent de partager le travail** entre plusieurs consommateurs d'un même groupe.
 
 ---
 
 ## Utiliser Kafka dans votre projet
 
-Les deux programmes de ce kit sont un bon point de départ : gardez la partie Kafka, et remplacez Wikipédia par votre propre source de données.
+Les programmes de ce kit sont un bon point de départ : gardez la partie Kafka, remplacez Wikipédia par votre propre source de données, et adaptez `archiveur.py` à ce que vous voulez enregistrer.
 
 Pour lancer un programme **directement sur votre machine** plutôt que dans Docker :
 
 ```bash
-pip install confluent-kafka requests
+pip install confluent-kafka requests pymongo
 ```
 
 ```bash
-python programmes/consommateur.py
+python programmes/archiveur.py
 ```
 
-Le programme se connecte alors à `localhost:9092`. Dans Docker, il utilisait `kafka:19092` : un conteneur ne peut pas joindre Kafka par `localhost`, qui désigne le conteneur lui-même.
+Le programme se connecte alors à `localhost:9092` pour Kafka et à `localhost:27017` pour MongoDB. Dans Docker, il utilisait `kafka:19092` et `mongo:27017` : un conteneur ne peut pas joindre les autres par `localhost`, qui désigne le conteneur lui-même.
 
 ---
 
 ## Arrêter
 
-Arrêtez d'abord le producteur et les consommateurs (`Ctrl+C` dans chaque terminal), puis :
+Arrêtez d'abord les programmes Python (`Ctrl+C` dans chaque terminal), puis :
 
 ```bash
 docker compose down          # arrête, garde les messages
-docker compose down -v       # arrête et efface les messages
+docker compose down -v       # arrête et efface les messages et la base MongoDB
 ```

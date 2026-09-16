@@ -1,9 +1,10 @@
-# Kit Kafka — un seul serveur Kafka, alimente par le flux en direct de Wikipedia.
+# Kit Kafka — un seul serveur Kafka, alimente par le flux en direct de Wikipedia,
+# et une base MongoDB dans laquelle un consommateur enregistre les messages.
 # Version figee volontairement : ne pas utiliser :latest
 #
 # Le serveur Kafka ecoute sur deux adresses, selon qui se connecte :
 #   localhost:9092   depuis votre machine, et depuis l'interieur du conteneur kafka
-#   kafka:19092      depuis les autres conteneurs (kafka-ui, producteur, consommateur)
+#   kafka:19092      depuis les autres conteneurs (kafka-ui, programmes Python)
 
 services:
 
@@ -61,9 +62,30 @@ services:
     depends_on:
       - kafka
 
-  # Les deux programmes Python. Ils ne demarrent PAS avec "docker compose up" :
+  # La base NoSQL ou archiveur.py enregistre les messages.
+  # Memes versions que le kit nosql-db/mongodb.
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    ports:
+      - "27017:27017"   # port client (mongosh, applications)
+    volumes:
+      - mongo-data:/data/db   # la persistance de MongoDB
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    ports:
+      - "8081:8081"     # interface web
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      - mongo
+
+  # Les programmes Python. Ils ne demarrent PAS avec "docker compose up" :
   # on les lance a la main avec "docker compose run --rm producteur" (ou
-  # consommateur), pour voir ce qu'ils affichent.
+  # consommateur, ou archiveur), pour voir ce qu'ils affichent.
   producteur:
     build: ./programmes
     image: henallux/kafka-programmes:1.0
@@ -90,5 +112,21 @@ services:
     depends_on:
       - kafka
 
+  archiveur:
+    build: ./programmes
+    image: henallux/kafka-programmes:1.0
+    profiles: ["programmes"]
+    command: ["python", "archiveur.py"]
+    init: true
+    environment:
+      KAFKA: "kafka:19092"
+      MONGO: "mongodb://mongo:27017"
+    volumes:
+      - ./programmes:/programmes
+    depends_on:
+      - kafka
+      - mongo
+
 volumes:
   kafka-data:
+  mongo-data:
