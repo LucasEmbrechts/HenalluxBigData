@@ -1,0 +1,94 @@
+# Kit Kafka — un seul serveur Kafka, alimente par le flux en direct de Wikipedia.
+# Version figee volontairement : ne pas utiliser :latest
+#
+# Le serveur Kafka ecoute sur deux adresses, selon qui se connecte :
+#   localhost:9092   depuis votre machine, et depuis l'interieur du conteneur kafka
+#   kafka:19092      depuis les autres conteneurs (kafka-ui, producteur, consommateur)
+
+services:
+
+  kafka:
+    image: apache/kafka:4.3.1
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"     # port client
+    environment:
+      # Les commandes Kafka (kafka-topics.sh...) sont utilisables sans chemin complet
+      PATH: "/opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+      # Un seul noeud, qui fait tout. Pas de ZooKeeper (mode "KRaft").
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "EXTERNE://:9092,INTERNE://:19092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNE://localhost:9092,INTERNE://kafka:19092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNE:PLAINTEXT,INTERNE:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNE"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+
+      # Un seul serveur : une seule copie de chaque donnee, y compris pour les
+      # topics internes de Kafka.
+      KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: "1"
+
+      # On cree toujours les topics nous-memes : un nom mal orthographie ne
+      # doit pas creer un topic en silence.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      # Le flux Wikipedia produit environ 1 Mo par minute. Les messages sont
+      # supprimes apres 24 h (7 jours par defaut) pour ne pas remplir le disque.
+      KAFKA_LOG_RETENTION_HOURS: "24"
+      # Par defaut, un groupe de consommateurs attend 3 s avant de demarrer.
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+
+      KAFKA_HEAP_OPTS: "-Xmx512m -Xms512m"   # sans cela, Kafka reclame 1 Go
+    volumes:
+      - kafka-data:/var/lib/kafka/data  # les messages
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.5.0
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"     # interface web
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "wikipedia"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:19092"
+    depends_on:
+      - kafka
+
+  # Les deux programmes Python. Ils ne demarrent PAS avec "docker compose up" :
+  # on les lance a la main avec "docker compose run --rm producteur" (ou
+  # consommateur), pour voir ce qu'ils affichent.
+  producteur:
+    build: ./programmes
+    image: henallux/kafka-programmes:1.0
+    profiles: ["programmes"]
+    command: ["python", "producteur.py"]
+    init: true          # pour que Ctrl+C arrete le programme proprement
+    environment:
+      KAFKA: "kafka:19092"
+    volumes:
+      - ./programmes:/programmes
+    depends_on:
+      - kafka
+
+  consommateur:
+    build: ./programmes
+    image: henallux/kafka-programmes:1.0
+    profiles: ["programmes"]
+    command: ["python", "consommateur.py"]
+    init: true
+    environment:
+      KAFKA: "kafka:19092"
+    volumes:
+      - ./programmes:/programmes
+    depends_on:
+      - kafka
+
+volumes:
+  kafka-data:
