@@ -1,0 +1,79 @@
+# Projet d'exemple : bases SQL -> Spark
+# Versions figees volontairement : ne pas utiliser :latest
+#
+# Deux bases SQL, remplies au demarrage avec les memes donnees :
+#   postgres   PostgreSQL
+#   mysql      MySQL
+# Le job Spark lit l'une OU l'autre, au choix :
+#   docker compose run --rm spark postgres
+#   docker compose run --rm spark mysql
+#
+# Spark : meme version que le kit kits/spark, mais en mode local
+# (une seule machine, sans master ni workers) pour rester simple.
+
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    ports:
+      - "5432:5432"     # port client (psql, DBeaver, applications)
+    environment:
+      POSTGRES_DB: "bigdata"
+      POSTGRES_USER: "bigdata"
+      POSTGRES_PASSWORD: "bigdata"
+    volumes:
+      # Tout fichier .sql place ici est execute au PREMIER demarrage
+      - ./donnees:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # "pret" = la table ventes existe, donc init.sql est termine
+      test: ["CMD-SHELL", "psql -h 127.0.0.1 -U bigdata -d bigdata -c 'SELECT 1 FROM ventes LIMIT 1'"]
+      interval: 5s
+      retries: 30
+
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+    ports:
+      - "3306:3306"     # port client (mysql, DBeaver, applications)
+    environment:
+      MYSQL_DATABASE: "bigdata"
+      MYSQL_USER: "bigdata"
+      MYSQL_PASSWORD: "bigdata"
+      MYSQL_ROOT_PASSWORD: "root"
+      # Sans cela, init.sql est lu en latin1 et les accents sont abimes
+      # ("Liège" devient "LiÃ¨ge").
+      LANG: "C.UTF-8"
+    volumes:
+      # Tout fichier .sql place ici est execute au PREMIER demarrage
+      - ./donnees:/docker-entrypoint-initdb.d:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # "pret" = la table ventes existe, donc init.sql est termine
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -ubigdata -pbigdata bigdata -e 'SELECT 1 FROM ventes LIMIT 1'"]
+      interval: 5s
+      retries: 30
+
+  # Le job Spark. Il ne demarre PAS avec "docker compose up" : on le lance a la
+  # main, en precisant la base a lire (postgres ou mysql).
+  spark:
+    build: ./spark
+    image: henallux/sql-spark:3.5.1
+    profiles: ["programmes"]
+    # local[2] : Spark tourne dans ce seul conteneur, avec 2 coeurs.
+    entrypoint: ["/opt/spark/bin/spark-submit", "--master", "local[2]", "/job/analyse.py"]
+    command: ["postgres"]   # la base lue si on n'en precise aucune
+    init: true
+    volumes:
+      - ./spark:/job
+    depends_on:
+      # Spark attend que les deux bases soient pretes et remplies
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  mysql-data:

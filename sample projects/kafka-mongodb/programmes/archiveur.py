@@ -1,8 +1,7 @@
 """Archiveur : lit le topic "wikipedia" et enregistre chaque modification dans MongoDB.
 
-consommateur.py compte en memoire : a l'arret, tout est perdu. Ce programme-ci
-ecrit chaque message dans une base NoSQL, ou il reste apres l'arret et ou on
-peut l'interroger.
+Kafka ne garde les messages que 24 heures et ne sait pas les interroger.
+Une fois dans MongoDB, ils restent, et on peut les chercher, les trier, les compter.
 """
 
 import json
@@ -23,9 +22,9 @@ collection = MongoClient(MONGO)["wikipedia"]["modifications"]
 
 consommateur = Consumer({
     "bootstrap.servers": KAFKA,
-    # Un AUTRE groupe que consommateur.py ("compteur") : les deux programmes
-    # recoivent donc chacun tous les messages.
+    # Le nom du groupe. Kafka retient, pour ce nom, jusqu'ou on a lu.
     "group.id": "archiveur",
+    # La toute premiere fois que ce groupe lit : partir du debut du topic.
     "auto.offset.reset": "earliest",
 })
 consommateur.subscribe([TOPIC])

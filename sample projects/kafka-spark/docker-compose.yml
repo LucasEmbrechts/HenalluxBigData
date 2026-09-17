@@ -1,9 +1,13 @@
-# Kit Kafka — un seul serveur Kafka, alimente par le flux en direct de Wikipedia.
-# Version figee volontairement : ne pas utiliser :latest
+# Projet d'exemple : Kafka -> Spark Structured Streaming
+# Source de donnees utilisee ici : le flux en direct de Wikipedia.
+# Versions figees volontairement : ne pas utiliser :latest
 #
-# Le serveur Kafka ecoute sur deux adresses, selon qui se connecte :
-#   localhost:9092   depuis votre machine, et depuis l'interieur du conteneur kafka
-#   kafka:19092      depuis les autres conteneurs (kafka-ui, programmes Python)
+#   producteur.py  lit le flux Wikipedia et l'envoie dans Kafka
+#   comptage.py    un job Spark qui lit Kafka et calcule en continu
+#
+# Kafka : meme configuration que le kit kits/streaming/kafka.
+# Spark : meme version que le kit kits/spark, mais en mode local
+# (une seule machine, sans master ni workers) pour rester simple.
 
 services:
 
@@ -50,43 +54,34 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data  # les messages
 
-  kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:v1.5.0
-    container_name: kafka-ui
-    ports:
-      - "8080:8080"     # interface web
-    environment:
-      KAFKA_CLUSTERS_0_NAME: "wikipedia"
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:19092"
-    depends_on:
-      - kafka
-
-  # Les programmes Python. Ils ne demarrent PAS avec "docker compose up" :
-  # on les lance a la main avec "docker compose run --rm producteur" (ou
-  # consommateur), pour voir ce qu'ils affichent.
+  # Le producteur Python. Il ne demarre PAS avec "docker compose up" :
+  # on le lance a la main avec "docker compose run --rm producteur".
   producteur:
-    build: ./programmes
-    image: henallux/kafka-programmes:1.0
+    build: ./producteur
+    image: henallux/kafka-spark-producteur:1.0
     profiles: ["programmes"]
     command: ["python", "producteur.py"]
     init: true          # pour que Ctrl+C arrete le programme proprement
     environment:
       KAFKA: "kafka:19092"
     volumes:
-      - ./programmes:/programmes
+      - ./producteur:/programmes
     depends_on:
       - kafka
 
-  consommateur:
-    build: ./programmes
-    image: henallux/kafka-programmes:1.0
+  # Le job Spark. Lui non plus ne demarre pas tout seul :
+  # on le lance a la main avec "docker compose run --rm spark".
+  spark:
+    build: ./spark
+    image: henallux/kafka-spark:3.5.1
     profiles: ["programmes"]
-    command: ["python", "consommateur.py"]
+    # local[2] : Spark tourne dans ce seul conteneur, avec 2 coeurs.
+    command: ["/opt/spark/bin/spark-submit", "--master", "local[2]", "--driver-memory", "1g", "/job/comptage.py"]
     init: true
     environment:
       KAFKA: "kafka:19092"
     volumes:
-      - ./programmes:/programmes
+      - ./spark:/job
     depends_on:
       - kafka
 

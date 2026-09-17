@@ -1,0 +1,56 @@
+# Projet d'exemple : fichiers -> Spark -> MongoDB
+# Versions figees volontairement : ne pas utiliser :latest
+#
+# Le job Spark lit les fichiers CSV du dossier donnees/, calcule, puis
+# enregistre le resultat dans MongoDB.
+#   docker compose run --rm spark
+#
+# MongoDB : memes versions que le kit kits/nosql-db/mongodb.
+# Spark : meme version que le kit kits/spark, mais en mode local
+# (une seule machine, sans master ni workers) pour rester simple.
+
+services:
+
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    ports:
+      - "27017:27017"   # port client (mongosh, applications)
+    volumes:
+      - mongo-data:/data/db   # la persistance de MongoDB
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping: 1})"]
+      interval: 5s
+      retries: 30
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    ports:
+      - "8081:8081"     # interface web
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      - mongo
+
+  # Le job Spark. Il ne demarre PAS avec "docker compose up" : on le lance a la
+  # main avec "docker compose run --rm spark".
+  spark:
+    build: ./spark
+    image: henallux/spark-mongodb:3.5.1
+    profiles: ["programmes"]
+    # local[2] : Spark tourne dans ce seul conteneur, avec 2 coeurs.
+    command: ["/opt/spark/bin/spark-submit", "--master", "local[2]", "/job/analyse.py"]
+    init: true
+    environment:
+      MONGO: "mongodb://mongo:27017"
+    volumes:
+      - ./donnees:/donnees:ro   # les fichiers CSV a lire
+      - ./spark:/job            # le code du job
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:

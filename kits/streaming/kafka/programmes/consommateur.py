@@ -1,56 +1,42 @@
-"""Consommateur : lit le topic "wikipedia" et compte les modifications par wiki.
-
-Toutes les 5 secondes, il affiche les wikis les plus modifies et la part des
-modifications faites par des robots.
-"""
+"""Consommateur : lit le topic "wikipedia" et affiche chaque message recu."""
 
 import json
 import os
-import time
-from collections import Counter
 
 from confluent_kafka import Consumer
 
-TOPIC = "wikipedia"
+# Adresse de Kafka : "kafka:19092" dans Docker, "localhost:9092" sur votre machine
 KAFKA = os.environ.get("KAFKA", "localhost:9092")
 
 consommateur = Consumer({
     "bootstrap.servers": KAFKA,
-    # Le nom du groupe. Kafka retient, pour ce nom, jusqu'ou on a lu.
-    "group.id": "compteur",
-    # La toute premiere fois que ce groupe lit : partir du debut du topic.
-    "auto.offset.reset": "earliest",
+    "group.id": "lecteurs",             # Kafka retient, pour ce groupe, jusqu'ou on a lu
+    "auto.offset.reset": "earliest",    # la toute premiere fois : partir du debut du topic
 })
-consommateur.subscribe([TOPIC])
-
-par_wiki = Counter()
-robots = 0
-total = 0
-dernier_affichage = time.time()
-
-print("En attente de messages... (Ctrl+C pour arreter)")
+consommateur.subscribe(["wikipedia"])
 
 try:
     while True:
-        message = consommateur.poll(1.0)   # attend un message, au plus 1 seconde
+        message = consommateur.poll(1.0)
+            # attend un message, au plus 1 seconde
+            # s'il y a un message : poll le renvoie immédiatement ;
+            # s'il n'y en a pas : poll attend jusqu'à 1 seconde qu'un message arrive ;
+            # si rien n'arrive pendant cette seconde : poll renvoie None.
+        if message is None:
+            continue
 
-        if message is not None and not message.error():
-            modification = json.loads(message.value())
-            par_wiki[modification["wiki"]] += 1
-            robots += modification["robot"] is True
-            total += 1
+        modification = json.loads(message.value())
 
-        if time.time() - dernier_affichage >= 5:
-            # Les partitions que Kafka a confiees a ce consommateur
-            partitions = sorted(p.partition for p in consommateur.assignment())
-            print(f"\nPartitions lues : {partitions}")
-            print(f"{total} modifications lues, dont {100 * robots // max(total, 1)} % par des robots")
-            for wiki, nombre in par_wiki.most_common(5):
-                print(f"  {wiki:<15} {nombre:>7}")
-            dernier_affichage = time.time()
+        # Pour pouvoir répartir le travail, un topic est découpé en plusieurs partitions.
+        # Dans le kit, le topic wikipedia en a 3 (--partitions 3) :
+        # L'offset est le numéro d'ordre d'un message dans sa partition :
+        # 0 pour le premier, 1 pour le deuxième, etc.
+        # Chaque partition a sa propre numérotation. 
+        print(f"partition {message.partition()} | offset {message.offset()} | "
+              f"{modification['wiki']} | {modification['titre']}")
 
 except KeyboardInterrupt:
     pass
 finally:
-    # Quitte proprement le groupe et enregistre jusqu'ou on a lu.
+    # Quitte proprement le groupe et enregistre jusqu'ou on a lu
     consommateur.close()

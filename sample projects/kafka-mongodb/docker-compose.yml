@@ -1,9 +1,12 @@
-# Kit Kafka — un seul serveur Kafka, alimente par le flux en direct de Wikipedia.
-# Version figee volontairement : ne pas utiliser :latest
+# Projet d'exemple : Kafka -> MongoDB
+# Source de donnees utilisee ici : le flux en direct de Wikipedia.
+# Versions figees volontairement : ne pas utiliser :latest
 #
-# Le serveur Kafka ecoute sur deux adresses, selon qui se connecte :
-#   localhost:9092   depuis votre machine, et depuis l'interieur du conteneur kafka
-#   kafka:19092      depuis les autres conteneurs (kafka-ui, programmes Python)
+#   producteur.py  lit le flux Wikipedia et l'envoie dans Kafka
+#   archiveur.py   lit Kafka et enregistre chaque message dans MongoDB
+#
+# Kafka : meme configuration que le kit kits/streaming/kafka.
+# MongoDB : memes versions que le kit kits/nosql-db/mongodb.
 
 services:
 
@@ -50,23 +53,31 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data  # les messages
 
-  kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:v1.5.0
-    container_name: kafka-ui
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
     ports:
-      - "8080:8080"     # interface web
+      - "27017:27017"   # port client (mongosh, applications)
+    volumes:
+      - mongo-data:/data/db   # la persistance de MongoDB
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    ports:
+      - "8081:8081"     # interface web
     environment:
-      KAFKA_CLUSTERS_0_NAME: "wikipedia"
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:19092"
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017
+      ME_CONFIG_BASICAUTH: "false"
     depends_on:
-      - kafka
+      - mongo
 
   # Les programmes Python. Ils ne demarrent PAS avec "docker compose up" :
   # on les lance a la main avec "docker compose run --rm producteur" (ou
-  # consommateur), pour voir ce qu'ils affichent.
+  # archiveur), pour voir ce qu'ils affichent.
   producteur:
     build: ./programmes
-    image: henallux/kafka-programmes:1.0
+    image: henallux/kafka-mongodb:1.0
     profiles: ["programmes"]
     command: ["python", "producteur.py"]
     init: true          # pour que Ctrl+C arrete le programme proprement
@@ -77,18 +88,21 @@ services:
     depends_on:
       - kafka
 
-  consommateur:
+  archiveur:
     build: ./programmes
-    image: henallux/kafka-programmes:1.0
+    image: henallux/kafka-mongodb:1.0
     profiles: ["programmes"]
-    command: ["python", "consommateur.py"]
+    command: ["python", "archiveur.py"]
     init: true
     environment:
       KAFKA: "kafka:19092"
+      MONGO: "mongodb://mongo:27017"
     volumes:
       - ./programmes:/programmes
     depends_on:
       - kafka
+      - mongo
 
 volumes:
   kafka-data:
+  mongo-data:

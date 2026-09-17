@@ -18,8 +18,6 @@ KAFKA = os.environ.get("KAFKA", "localhost:9092")
 
 producteur = Producer({"bootstrap.servers": KAFKA})
 
-# Un topic, c'est un journal où Kafka note les messages dans l'ordre d'arrivée.
-# On ajoute toujours à la fin, et on ne modifie ni ne supprime jamais un message déjà écrit
 # Sans topic, les messages seraient perdus sans aucun message d'erreur.
 if "wikipedia" not in producteur.list_topics(timeout=10).topics:
     raise SystemExit("Le topic 'wikipedia' n'existe pas : creez-le d'abord (section 2 du README).")
@@ -46,29 +44,18 @@ try:
         }
 
         # L'envoi dans Kafka : un topic, une cle, une valeur
-        # Attention : produce n'envoie pas directement le message.
-        # Il le range dans une file d'attente en mémoire,
-        # puis rend la main tout de suite.
-        # Kafka applique toujours la même règle : une même clé va toujours dans la même partition. 
         producteur.produce(
             "wikipedia",
             key=modification["wiki"],
             value=json.dumps(modification, ensure_ascii=False),
         )
-
-        # Kafka répond par un accusé de réception pour chaque message.
-        # poll(0) traite ces accusés de réception.
-        # Le 0 signifie « ne pas attendre » : on traite ceux qui sont déjà arrivés
-        # poll(0) après chaque envoi vide la file au fur et à mesure.
-        producteur.poll(0)
+        producteur.poll(0)   # laisse Kafka traiter les envois en cours
 
         print("envoye :", modification["wiki"], "-", modification["titre"])
 
 except KeyboardInterrupt:
     pass
 finally:
-    
-    # flush() attend que tous les messages soient partis vers Kafka.
-    # C'est un poll qui attend : à l'arrêt, il patiente jusqu'à ce que tous les messages de la file soient partis et confirmés.
-    # Sans lui, les derniers messages encore en file seraient perdus en quittant le programme.
+    # produce() ne fait que mettre le message en attente :
+    # flush() attend qu'ils soient tous vraiment partis vers Kafka.
     producteur.flush()
