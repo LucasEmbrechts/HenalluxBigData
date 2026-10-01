@@ -29,7 +29,12 @@ docker compose up -d
 
 Un seul conteneur démarre, `spark` : c'est votre machine de travail. Tout se passe dedans, et vous n'avez ni Java ni Spark à installer.
 
-Les données sont dans [data/trajets.csv](data/trajets.csv) : 5 000 relevés au format `camion_id,vitesse,temp_moteur`, les mêmes que dans les autres kits. Le conteneur les voit sous `/data/trajets.csv`.
+Le dossier [data/](data/) contient deux fichiers, que le conteneur voit sous `/data` :
+
+| Fichier | Contenu |
+|---|---|
+| [trajets.csv](data/trajets.csv) | 5 000 relevés : `camion_id,vitesse,temp_moteur` — les mêmes que dans les autres kits |
+| [camions.csv](data/camions.csv) | 25 camions : `camion_id,chauffeur,depot` — des données fictives, pour faire une jointure |
 
 ---
 
@@ -94,6 +99,55 @@ exces.show(10)
 
 Chaque méthode renvoie **un nouveau DataFrame**, qu'on enchaîne. Une habitude utile : écrire l'enchaînement entre parenthèses, une opération par ligne.
 
+### Explorer les données
+
+Avant de calculer, on regarde ce qu'on a :
+
+```python
+releves.describe().show()                               # nombre, moyenne, écart-type, min, max
+releves.select(countDistinct("camion_id")).show()       # combien de camions ?
+```
+
+### Ajouter une colonne calculée
+
+`withColumn` crée une colonne à partir des autres. `when` enchaîne les cas, comme un `CASE WHEN` en SQL :
+
+```python
+releves = releves.withColumn(
+    "categorie",
+    when(col("vitesse") > 90, "exces")
+    .when(col("vitesse") > 70, "normal")
+    .otherwise("lent")
+)
+```
+
+### Joindre deux tableaux
+
+`join` rapproche deux DataFrames par leur colonne commune. Ici, on ajoute à chaque camion son chauffeur et son dépôt, puis on compte les excès **par dépôt** :
+
+```python
+exces_par_depot = (
+    exces
+    .join(camions, "camion_id")                  # la colonne commune
+    .groupBy("depot")
+    .agg(somme("count").alias("nb_exces"))
+    .orderBy(col("nb_exces").desc())
+)
+```
+
+```
++---------+--------+
+|    depot|nb_exces|
++---------+--------+
+|    Namur|     275|
+|    Liège|     255|
+|    Arlon|     219|
+|Charleroi|     217|
++---------+--------+
+```
+
+> `sum` est importé sous le nom `somme`, parce que Python a déjà une fonction `sum()`. Même remarque pour `round` et `max` : si vous les importez de `pyspark.sql.functions`, ils remplacent les fonctions Python du même nom dans votre programme.
+
 ### Transformations et actions
 
 C'est la particularité de Spark : les lignes `filter`, `groupBy`, `count`, `orderBy` **ne calculent rien**. Elles ne font que noter ce qu'il faudra faire. C'est `show()` qui déclenche le calcul.
@@ -118,8 +172,10 @@ Si vous commentez tous les `show()` d'un programme, il s'exécute presque instan
 | Renommer | `avg("vitesse").alias("vitesse_moyenne")` | `AS vitesse_moyenne` |
 | Trier | `.orderBy(col("count").desc())` | `ORDER BY count DESC` |
 | Limiter l'affichage | `.show(10)` | `LIMIT 10` |
-| Ajouter une colonne | `.withColumn("exces", col("vitesse") > 90)` | une colonne calculée |
-| Joindre deux tableaux | `ventes.join(magasins, "magasin_id")` | `JOIN … USING (magasin_id)` |
+| Joindre deux tableaux | `exces.join(camions, "camion_id")` | `JOIN … USING (camion_id)` |
+| Compter les valeurs distinctes | `countDistinct("camion_id")` | `COUNT(DISTINCT camion_id)` |
+| Colonne calculée | `.withColumn("exces", col("vitesse") > 90)` | une colonne calculée |
+| Cas multiples | `when(…, …).otherwise(…)` | `CASE WHEN … ELSE … END` |
 
 Les fonctions comme `col`, `avg` ou `round` s'importent depuis `pyspark.sql.functions` :
 
@@ -151,7 +207,37 @@ Le résultat est **identique** à la version DataFrame, et Spark exécute exacte
 
 ---
 
-## 6. Essayer des commandes une par une
+## 6. Écrire le résultat dans des fichiers
+
+`show()` affiche à l'écran, mais un vrai programme produit des fichiers :
+
+```python
+exces_par_depot.write.mode("overwrite").option("header", True).csv("/sortie/exces-par-depot")
+exces_par_depot.write.mode("overwrite").parquet("/sortie/exces-par-depot-parquet")
+```
+
+Les fichiers apparaissent dans le dossier [sortie/](sortie/) du kit. Regardez-les :
+
+```bash
+ls sortie/exces-par-depot
+```
+
+```
+_SUCCESS   part-00000-24e278c1-….csv
+```
+
+Deux surprises, et elles sont normales :
+
+- **Spark écrit un dossier, pas un fichier.** Il écrit **un fichier par partition** — ici une seule, car le résultat est minuscule. Sur un cluster, chaque machine écrit sa part en parallèle, d'où ce découpage. `_SUCCESS` est un fichier témoin : il signale que l'écriture s'est bien terminée.
+- **`mode("overwrite")`** remplace le dossier s'il existe déjà. Sans cette option, Spark refuse d'écrire sur un dossier existant.
+
+**Parquet** est le format de fichier standard du Big Data : il range les données **par colonne**, ce qui le rend bien plus compact et bien plus rapide à lire qu'un CSV dès que les volumes grandissent. Spark le lit avec `spark.read.parquet(...)`.
+
+> **Sous Linux**, l'écriture dans `sortie/` peut échouer pour une question de droits, car le conteneur n'utilise pas votre compte. Dans ce cas, ajoutez `user: root` au service `spark` dans [docker-compose.yml](docker-compose.yml).
+
+---
+
+## 7. Essayer des commandes une par une
 
 Pour expérimenter sans écrire de fichier, ouvrez le **shell Spark** :
 
@@ -174,7 +260,7 @@ Quittez avec `exit()`.
 
 ---
 
-## 7. Écrire votre propre programme
+## 8. Écrire votre propre programme
 
 Créez un fichier dans le dossier [job/](job/), par exemple `job/mon_calcul.py`, puis lancez-le :
 

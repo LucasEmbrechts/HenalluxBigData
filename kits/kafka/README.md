@@ -239,8 +239,8 @@ Pour aller plus loin, deux projets d'exemple relient ce flux à d'autres technol
 
 | Projet | Ce qu'il montre |
 |---|---|
-| [kafka-mongodb](../../../sample%20projects/kafka-mongodb/) | un consommateur qui enregistre les messages dans MongoDB |
-| [kafka-spark](../../../sample%20projects/kafka-spark/) | Spark qui calcule en continu sur le flux Kafka |
+| [kafka-mongodb](../../sample%20projects/kafka-mongodb/) | un consommateur qui enregistre les messages dans MongoDB |
+| [kafka-spark](../../sample%20projects/kafka-spark/) | Spark qui calcule en continu sur le flux Kafka |
 
 Pour lancer un programme **directement sur votre machine** plutôt que dans Docker :
 

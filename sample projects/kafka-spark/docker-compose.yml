@@ -5,7 +5,7 @@
 #   producteur.py  lit le flux Wikipedia et l'envoie dans Kafka
 #   comptage.py    un job Spark qui lit Kafka et calcule en continu
 #
-# Kafka : meme configuration que le kit kits/streaming/kafka.
+# Kafka : meme configuration que le kit kits/kafka.
 # Spark : meme version que le kit kits/spark, et comme lui sur une seule machine.
 
 services:

@@ -11,7 +11,7 @@ Wikipédia  ──→  producteur.py  ──→  KAFKA  ──→  archiveur.py 
 
 Ce projet relie deux technologies vues séparément dans les kits :
 
-- [kits/streaming/kafka](../../kits/streaming/kafka/) : faire circuler les données ;
+- [kits/kafka](../../kits/kafka/) : faire circuler les données ;
 - [kits/nosql-db/mongodb](../../kits/nosql-db/mongodb/) : les stocker et les interroger.
 
 Faites ces deux kits d'abord : ce projet ne réexplique pas leurs bases.

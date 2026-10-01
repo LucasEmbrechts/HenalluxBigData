@@ -5,7 +5,7 @@
 #   producteur.py  lit le flux Wikipedia et l'envoie dans Kafka
 #   archiveur.py   lit Kafka et enregistre chaque message dans MongoDB
 #
-# Kafka : meme configuration que le kit kits/streaming/kafka.
+# Kafka : meme configuration que le kit kits/kafka.
 # MongoDB : memes versions que le kit kits/nosql-db/mongodb.
 
 services:

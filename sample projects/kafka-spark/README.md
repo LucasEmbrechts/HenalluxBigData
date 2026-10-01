@@ -12,7 +12,7 @@ Wikipédia  ──→  producteur.py  ──→  KAFKA  ──→  SPARK (compta
 
 Ce projet relie deux technologies vues séparément dans les kits :
 
-- [kits/streaming/kafka](../../kits/streaming/kafka/) : faire circuler les données ;
+- [kits/kafka](../../kits/kafka/) : faire circuler les données ;
 - [kits/spark](../../kits/spark/) : calculer sur les données.
 
 Faites ces deux kits d'abord : ce projet ne réexplique pas leurs bases.

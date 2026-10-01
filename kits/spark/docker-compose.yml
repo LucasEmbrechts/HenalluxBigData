@@ -18,4 +18,5 @@ services:
     volumes:
       - ./data:/data                # les donnees
       - ./job:/job                  # vos programmes
+      - ./sortie:/sortie            # les fichiers produits par vos programmes
       - ./conf:/opt/spark/conf:ro   # moins de messages a l'ecran
