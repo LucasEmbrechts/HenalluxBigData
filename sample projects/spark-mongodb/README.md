@@ -10,7 +10,7 @@ fichiers CSV  ──→  SPARK (analyse.py)  ──→  MONGODB
 
 Les données sont **fictives**, les mêmes que dans le projet [sql-spark](../sql-spark/) : 10 magasins et 20 000 ventes. Spark calcule le **chiffre d'affaires par ville et par magasin**.
 
-Faites d'abord les kits [kits/spark](../../kits/spark/) et [kits/nosql-db/mongodb](../../kits/nosql-db/mongodb/) : ce projet ne réexplique pas leurs bases. Pour rester simple, Spark tourne ici sur une seule machine, sans master ni workers.
+Faites d'abord les kits [kits/spark](../../kits/spark/) et [kits/nosql-db/mongodb](../../kits/nosql-db/mongodb/) : ce projet ne réexplique pas leurs bases.
 
 ## Prérequis
 

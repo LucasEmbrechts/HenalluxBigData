@@ -8,8 +8,7 @@
 #   docker compose run --rm spark postgres
 #   docker compose run --rm spark mysql
 #
-# Spark : meme version que le kit kits/spark, mais en mode local
-# (une seule machine, sans master ni workers) pour rester simple.
+# Spark : meme version que le kit kits/spark, et comme lui sur une seule machine.
 
 services:
 

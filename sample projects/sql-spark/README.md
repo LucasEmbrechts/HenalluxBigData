@@ -13,7 +13,7 @@ MySQL      ─┘      lit, joint,        └─→ MySQL
 
 Les données sont **fictives** : 10 magasins et 20 000 ventes. Spark calcule le **chiffre d'affaires par ville**.
 
-Faites d'abord le kit [kits/spark](../../kits/spark/) : ce projet ne réexplique pas les bases de Spark. Pour rester simple, Spark tourne ici sur une seule machine, sans master ni workers.
+Faites d'abord le kit [kits/spark](../../kits/spark/) : ce projet ne réexplique pas les bases de Spark.
 
 ## Prérequis
 

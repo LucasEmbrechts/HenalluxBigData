@@ -6,8 +6,7 @@
 #   docker compose run --rm spark
 #
 # MongoDB : memes versions que le kit kits/nosql-db/mongodb.
-# Spark : meme version que le kit kits/spark, mais en mode local
-# (une seule machine, sans master ni workers) pour rester simple.
+# Spark : meme version que le kit kits/spark, et comme lui sur une seule machine.
 
 services:
 
