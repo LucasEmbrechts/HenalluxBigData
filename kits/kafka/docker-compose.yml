@@ -17,7 +17,14 @@ services:
       # Les commandes Kafka (kafka-topics.sh...) sont utilisables sans chemin complet
       PATH: "/opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-      # Un seul noeud, qui fait tout. Pas de ZooKeeper (mode "KRaft").
+      # ---------------------------------------------------------------------
+      # Kafka est concu pour tourner sur plusieurs machines. Toutes les lignes
+      # qui suivent lui disent la meme chose : "tu es tout seul".
+      #   - un seul serveur, qui joue tous les roles
+      #   - une seule copie de chaque donnee, au lieu de 3 par defaut
+      # Elles sont obligatoires : sans elles, Kafka refuse de demarrer.
+      # Le pourquoi est explique dans le README, section 8.
+      # ---------------------------------------------------------------------
       KAFKA_NODE_ID: "1"
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
@@ -27,15 +34,13 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNE:PLAINTEXT,INTERNE:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNE"
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
-
-      # Un seul serveur : une seule copie de chaque donnee, y compris pour les
-      # topics internes de Kafka.
       KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
       KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: "1"
       KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: "1"
+      # ---------------------------------------------------------------------
 
       # On cree toujours les topics nous-memes : un nom mal orthographie ne
       # doit pas creer un topic en silence.

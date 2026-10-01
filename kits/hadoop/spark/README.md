@@ -1,4 +1,4 @@
-# Kit — Spark sur YARN (Java)
+# Kit — Spark sur YARN (Python)
 
 Un cluster **HDFS + YARN** prêt à l'emploi, sur lequel on soumet des jobs Spark.
 
@@ -12,6 +12,10 @@ Un cluster **HDFS + YARN** prêt à l'emploi, sur lequel on soumet des jobs Spar
 
 - Docker + Docker Compose
 - ~4 Go de RAM disponibles
+
+> **Rien à installer.** Les jobs sont écrits en **Python** (PySpark) : l'image
+> Hadoop du cluster embarque déjà Python, et le conteneur `spark-client` y
+> ajoute Spark. Aucun compilateur, aucun Maven.
 
 > **Un seul kit à la fois.** Les deux kits utilisent les mêmes noms de
 > conteneurs (`namenode`, `datanode`…). Faites `docker compose down` dans
@@ -73,31 +77,18 @@ Mêmes 5 000 relevés que le kit MapReduce : `camion_id,vitesse,temp_moteur`.
 
 ---
 
-## 3. Compiler le job
+## 3. Lancer le job sur YARN
 
-```bash
-docker run --rm -v "$(pwd)/job":/app -w /app maven:3.9-eclipse-temurin-11 mvn -q clean package
-```
-
-Résultat : `job/target/exces-spark.jar`, visible dans le conteneur sous
-`/job/target/exces-spark.jar` (le dossier `job/` est monté).
-
-> Windows PowerShell : remplacez `$(pwd)` par `${PWD}`.
-> Lancez la commande **depuis le dossier du kit**, pas depuis `job/`.
-
----
-
-## 4. Lancer le job sur YARN
+Les jobs sont de simples fichiers Python : **il n'y a rien à compiler**.
 
 **Version RDD** (l'équivalent direct de MapReduce) :
 
 ```bash
 docker exec -it spark-client /opt/spark/bin/spark-submit \
   --master yarn --deploy-mode client \
-  --class be.henallux.bigdata.ExcesSparkRDD \
   --num-executors 1 --executor-memory 512m --executor-cores 1 \
   --conf spark.yarn.am.memory=512m \
-  /job/target/exces-spark.jar \
+  /job/exces_rdd.py \
   /projet/trajets /projet/resultat-rdd
 ```
 
@@ -106,14 +97,17 @@ docker exec -it spark-client /opt/spark/bin/spark-submit \
 ```bash
 docker exec -it spark-client /opt/spark/bin/spark-submit \
   --master yarn --deploy-mode client \
-  --class be.henallux.bigdata.ExcesSparkSQL \
   --num-executors 1 --executor-memory 512m --executor-cores 1 \
   --conf spark.yarn.am.memory=512m \
-  /job/target/exces-spark.jar \
+  /job/exces_sql.py \
   /projet/trajets /projet/resultat-sql
 ```
 
-Celle-ci affiche directement les tableaux dans le terminal.
+Celle-ci affiche directement les tableaux dans le terminal, et écrit aussi son
+résultat dans HDFS.
+
+> **Comptez une à deux minutes par job.** Le calcul lui-même est instantané :
+> c'est la mise en place de l'application sur YARN qui prend ce temps.
 
 ### Ce qui se passe pendant que ça défile
 
@@ -148,7 +142,7 @@ Suivez tout ça en parallèle sur http://localhost:8088.
 
 ---
 
-## 5. Lire le résultat
+## 4. Lire le résultat
 
 ```bash
 docker exec -it spark-client bash
@@ -162,7 +156,7 @@ exit
 > `_SUCCESS` est le fichier témoin, comme en MapReduce.
 >
 > Spark refuse d'écrire dans un répertoire existant (sauf en mode `overwrite`,
-> que `ExcesSparkSQL` utilise). Pour relancer la version RDD :
+> que `exces_sql.py` utilise). Pour relancer la version RDD :
 > `hdfs dfs -rm -r /projet/resultat-rdd`
 
 ---
@@ -173,8 +167,10 @@ Ouvrez côte à côte le code de ce kit et celui de `../mapreduce` :
 
 | | MapReduce | Spark RDD | Spark DataFrame |
 |---|---|---|---|
-| Classes à écrire | **3** | 1 | 1 |
-| Lignes de logique | ~60 | ~15 | ~5 |
+| Langage | Java | Python | Python |
+| Fichiers à écrire | **3 classes** | 1 fichier | 1 fichier |
+| À compiler avant de lancer | oui (Maven) | **non** | **non** |
+| Lignes de logique | ~60 | ~10 | ~5 |
 | Shuffle | implicite | `reduceByKey` | `groupBy` |
 | Calculer une **moyenne** | difficile | moyen | trivial (`avg`) |
 | Ordonnanceur | YARN | YARN | YARN |
@@ -187,7 +183,7 @@ la même infrastructure.
 Trois observations à faire vous-même :
 
 1. **Où est le `Reducer` ?** Dans Spark, `reduceByKey` fait le même travail
-   qu'une classe entière en MapReduce.
+   qu'une classe entière en MapReduce — en une ligne.
 2. **Quand le calcul démarre-t-il vraiment ?** Repérez la ligne qui déclenche
    tout (l'*action*) — avant elle, Spark n'a fait que noter les étapes.
 3. **Regardez l'interface 4040** pendant l'exécution : Spark y affiche le DAG,
@@ -199,7 +195,7 @@ Trois observations à faire vous-même :
 
 **Exercice 1 — la moyenne.** En MapReduce, calculer la vitesse moyenne par
 camion demandait de repenser le mapper (et de renoncer au combiner).
-Combien de lignes cela prend-il ici ? *(la réponse est déjà dans `ExcesSparkSQL`)*
+Combien de lignes cela prend-il ici ? *(la réponse est déjà dans `exces_sql.py`)*
 
 **Exercice 2 — température.** Sortez, pour chaque camion, sa température moteur
 **maximale**, et ne gardez que les camions dépassant 100 °C.

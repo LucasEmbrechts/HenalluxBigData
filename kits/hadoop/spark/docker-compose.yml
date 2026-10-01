@@ -6,7 +6,7 @@
 services:
 
   namenode:
-    image: apache/hadoop:3.4.0
+    image: apache/hadoop:3.4.3
     hostname: namenode
     container_name: namenode
     user: root
@@ -21,7 +21,7 @@ services:
       - ./data:/data     # jeux de donnees fournis
 
   datanode:
-    image: apache/hadoop:3.4.0
+    image: apache/hadoop:3.4.3
     container_name: datanode
     user: root
     command: ["hdfs", "datanode"]
@@ -31,7 +31,7 @@ services:
       - namenode
 
   resourcemanager:
-    image: apache/hadoop:3.4.0
+    image: apache/hadoop:3.4.3
     hostname: resourcemanager
     container_name: resourcemanager
     user: root
@@ -44,7 +44,7 @@ services:
       - namenode
 
   nodemanager:
-    image: apache/hadoop:3.4.0
+    image: apache/hadoop:3.4.3
     container_name: nodemanager
     user: root
     command: ["yarn", "nodemanager"]
@@ -68,9 +68,7 @@ services:
       - ./config
     volumes:
       - ./data:/data     # jeux de donnees fournis
-      # On monte ./job en entier, pas ./job/target : "mvn clean" supprime et
-      # recree target/, ce qui casserait le montage jusqu'au redemarrage.
-      - ./job:/job       # le code source et le .jar compile
+      - ./job:/job       # les jobs Spark, en Python
     depends_on:
       - namenode
       - resourcemanager

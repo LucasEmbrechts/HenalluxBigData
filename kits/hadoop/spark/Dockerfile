@@ -5,7 +5,7 @@
 # config HDFS/YARN generee a partir de ./config) et on y ajoute les binaires
 # Spark officiels, pris directement dans l'image apache/spark.
 
-FROM apache/hadoop:3.4.0
+FROM apache/hadoop:3.4.3
 
 USER root
 

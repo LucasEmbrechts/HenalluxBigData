@@ -222,6 +222,47 @@ Ouvrez [http://localhost:8080](http://localhost:8080), puis cliquez sur le clust
 
 ---
 
+## 8. Pourquoi autant de réglages dans le docker-compose.yml ?
+
+En ouvrant [docker-compose.yml](docker-compose.yml), vous verrez une quinzaine de lignes de configuration. Elles disent toutes **la même chose** : « tu es tout seul ».
+
+Kafka est conçu pour tourner sur plusieurs machines. C'est son cas normal, et c'est donc ce qu'il suppose par défaut. Faire tourner un seul serveur est, pour lui, le cas particulier — qu'il faut déclarer explicitement, sinon il refuse de démarrer.
+
+Ces lignes se répartissent en deux groupes.
+
+### « Je suis le seul serveur, et je fais tout »
+
+```yaml
+KAFKA_NODE_ID: "1"                              # je suis le serveur n°1
+KAFKA_PROCESS_ROLES: "broker,controller"        # je fais les deux métiers
+KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"  # la liste des votants, c'est moi
+```
+
+Un serveur Kafka peut tenir deux rôles :
+
+| Rôle | Ce qu'il fait |
+|---|---|
+| **broker** | reçoit les messages, les stocke, répond aux consommateurs |
+| **controller** | tient la liste des topics et des partitions, et désigne qui est responsable de quoi |
+
+Dans un vrai cluster, ces rôles sont souvent séparés : quelques machines contrôleurs, et beaucoup de brokers. Les contrôleurs **élisent** entre eux un chef, et le remplacent automatiquement s'il tombe : c'est le rôle de la liste des votants. Depuis Kafka 4, ce mécanisme — appelé **KRaft** — remplace ZooKeeper, qui assurait ce travail auparavant.
+
+Ici, une seule machine fait les deux métiers, et la liste des votants ne contient qu'elle-même : elle vote pour elle, elle est élue, et on n'en parle plus.
+
+### « Une seule copie de chaque donnée »
+
+```yaml
+KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
+KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+...
+```
+
+Par défaut, Kafka garde **3 copies** de chaque partition, sur 3 machines différentes : si l'une tombe, les données restent disponibles. Avec un seul serveur, c'est impossible : il faut lui demander de se contenter d'une copie.
+
+**Conséquence à garder en tête** : ce kit n'a aucune tolérance aux pannes. Si le conteneur s'arrête, plus rien ne fonctionne. C'est acceptable pour apprendre, jamais en production.
+
+---
+
 ## Ce qu'il faut retenir
 
 1. **Kafka transporte des données en mouvement**, entre des producteurs qui envoient et des consommateurs qui lisent. Les deux ne se connaissent pas.
