@@ -57,7 +57,7 @@ services:
 
   spark-client:
     build: .
-    image: henallux/spark-client:3.5.1
+    image: henallux/spark-client:3.5.9
     hostname: spark-client
     container_name: spark-client
     user: root

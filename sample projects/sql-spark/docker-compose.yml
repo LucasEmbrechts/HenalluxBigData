@@ -58,7 +58,7 @@ services:
   # main, en precisant la base a lire (postgres ou mysql).
   spark:
     build: ./spark
-    image: henallux/sql-spark:3.5.1
+    image: henallux/sql-spark:3.5.9
     profiles: ["programmes"]
     # local[2] : Spark tourne dans ce seul conteneur, avec 2 coeurs.
     entrypoint: ["/opt/spark/bin/spark-submit", "--master", "local[2]", "/job/analyse.py"]

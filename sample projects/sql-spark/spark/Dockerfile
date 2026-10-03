@@ -4,7 +4,7 @@
 # base : une bibliotheque Java fournie par l'editeur. On les ajoute une fois
 # pour toutes dans /opt/spark/jars, la ou Spark charge ses bibliotheques.
 
-FROM apache/spark:3.5.1
+FROM apache/spark:3.5.9
 
 USER root
 

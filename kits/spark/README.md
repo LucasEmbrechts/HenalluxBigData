@@ -190,14 +190,14 @@ dates, textes, statistiques, fenêtres, tableaux imbriqués…
 
 | Où chercher | Ce qu'on y trouve |
 |---|---|
-| [Les fonctions](https://archive.apache.org/dist/spark/docs/3.5.1/api/python/reference/pyspark.sql/functions.html) | tout ce qui s'importe de `pyspark.sql.functions` : `avg`, `when`, `round`, `year`, `upper`, `split`… |
-| [Les méthodes du DataFrame](https://archive.apache.org/dist/spark/docs/3.5.1/api/python/reference/pyspark.sql/dataframe.html) | tout ce qui s'écrit après un point : `.filter()`, `.groupBy()`, `.join()`, `.write`… |
-| [Les fonctions SQL](https://archive.apache.org/dist/spark/docs/3.5.1/sql-ref-functions-builtin.html) | les mêmes, utilisables dans `spark.sql("…")` |
+| [Les fonctions](https://spark.apache.org/docs/3.5.9/api/python/reference/pyspark.sql/functions.html) | tout ce qui s'importe de `pyspark.sql.functions` : `avg`, `when`, `round`, `year`, `upper`, `split`… |
+| [Les méthodes du DataFrame](https://spark.apache.org/docs/3.5.9/api/python/reference/pyspark.sql/dataframe.html) | tout ce qui s'écrit après un point : `.filter()`, `.groupBy()`, `.join()`, `.write`… |
+| [Les fonctions SQL](https://spark.apache.org/docs/3.5.9/sql-ref-functions-builtin.html) | les mêmes, utilisables dans `spark.sql("…")` |
 
-Ces trois pages documentent **Spark 3.5.1**, la version du kit. La documentation de la
+Ces trois pages documentent **Spark 3.5.9**, la version du kit. La documentation de la
 dernière version de Spark est sur [spark.apache.org/docs/latest](https://spark.apache.org/docs/latest/api/python/reference/index.html) :
 elle est plus agréable à parcourir, mais certaines fonctions qu'elle décrit n'existent pas
-encore en 3.5.1.
+encore en 3.5.9.
 
 > **Astuce** : dans le shell `pyspark` (section 7), on peut lire l'aide d'une fonction sans
 > quitter le terminal. Il faut l'importer d'abord :

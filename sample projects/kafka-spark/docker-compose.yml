@@ -72,7 +72,7 @@ services:
   # on le lance a la main avec "docker compose run --rm spark".
   spark:
     build: ./spark
-    image: henallux/kafka-spark:3.5.1
+    image: henallux/kafka-spark:3.5.9
     profiles: ["programmes"]
     # local[2] : Spark tourne dans ce seul conteneur, avec 2 coeurs.
     command: ["/opt/spark/bin/spark-submit", "--master", "local[2]", "--driver-memory", "1g", "/job/comptage.py"]

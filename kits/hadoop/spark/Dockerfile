@@ -11,7 +11,7 @@ USER root
 
 # Recupere /opt/spark depuis l'image Spark officielle : pas de tarball a
 # telecharger ni a versionner dans le depot.
-COPY --from=apache/spark:3.5.1 /opt/spark /opt/spark
+COPY --from=apache/spark:3.5.9 /opt/spark /opt/spark
 
 ENV SPARK_HOME=/opt/spark
 ENV PATH="${PATH}:/opt/spark/bin"

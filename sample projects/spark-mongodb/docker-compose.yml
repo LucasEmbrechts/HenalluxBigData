@@ -37,7 +37,7 @@ services:
   # main avec "docker compose run --rm spark".
   spark:
     build: ./spark
-    image: henallux/spark-mongodb:3.5.1
+    image: henallux/spark-mongodb:3.5.9
     profiles: ["programmes"]
     # local[2] : Spark tourne dans ce seul conteneur, avec 2 coeurs.
     command: ["/opt/spark/bin/spark-submit", "--master", "local[2]", "/job/analyse.py"]
