@@ -79,6 +79,7 @@ services:
       KAFKA: "kafka:19092"
     volumes:
       - ./programmes:/programmes
+      - ./exercices:/exercices   # les corrections des exercices
     depends_on:
       - kafka
 
@@ -92,6 +93,7 @@ services:
       KAFKA: "kafka:19092"
     volumes:
       - ./programmes:/programmes
+      - ./exercices:/exercices   # les corrections des exercices
     depends_on:
       - kafka
 

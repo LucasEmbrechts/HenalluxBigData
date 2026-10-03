@@ -179,6 +179,30 @@ Regardez les offsets : ils **ne repartent pas de 0**. Le programme reprend là o
 
 C'est Kafka qui s'en souvient. Le consommateur appartient à un **groupe**, nommé `lecteurs` dans le code (`group.id`), et Kafka retient **jusqu'où ce groupe a lu**.
 
+### Tout relire depuis le début
+
+Les messages sont toujours là : reprendre au bon endroit est un choix, pas une obligation. Pour tout relire, deux façons.
+
+**La plus simple : changer de groupe.** Dans [programmes/consommateur.py](programmes/consommateur.py), remplacez le nom du groupe :
+
+```python
+"group.id": "essai",     # au lieu de "lecteurs"
+```
+
+Relancez le consommateur : les offsets repartent de **0**. Ce groupe n'a jamais rien lu, et `auto.offset.reset: earliest` lui dit de commencer au début du topic. Remettez ensuite `lecteurs` pour la suite.
+
+**L'autre : ramener le groupe en arrière.** Arrêtez d'abord tous les consommateurs, puis :
+
+```bash
+docker exec kafka kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group lecteurs --topic wikipedia --reset-offsets --to-earliest --execute
+```
+
+Kafka affiche la nouvelle position de chaque partition, remise à 0. Au prochain lancement, le groupe `lecteurs` relit tout.
+
+> Le groupe doit être **à l'arrêt** : tant qu'un consommateur y est connecté, Kafka refuse de déplacer sa position.
+
+C'est une des grandes différences avec une file d'attente classique : on corrige un bug dans son programme, et on **rejoue l'historique** sans rien redemander à la source.
+
 ---
 
 ## 6. Plusieurs consommateurs
