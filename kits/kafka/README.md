@@ -130,7 +130,7 @@ docker exec kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --
 
 Relancez cette commande plusieurs fois : ce sont **toujours les mêmes 5 messages**.
 
-C'est le point le plus important de Kafka : **lire un message ne le supprime pas**. Contrairement à une boîte mail, où un message lu puis archivé disparaît de la boîte de réception, Kafka garde tous les messages (ici pendant 24 heures). Plusieurs programmes peuvent donc lire les mêmes données, chacun à son rythme.
+C'est le point le plus important de Kafka : **lire un message ne le supprime pas**. Contrairement à une boîte mail, où un message lu puis archivé disparaît de la boîte de réception, Kafka garde les messages un certain temps : 7 jours par défaut, 24 heures dans ce kit. En pratique, il les garde même plus longtemps, car il supprime par blocs entiers, jamais message par message. Plusieurs programmes peuvent donc lire les mêmes données, chacun à son rythme.
 
 ---
 

@@ -45,8 +45,10 @@ services:
       # On cree toujours les topics nous-memes : un nom mal orthographie ne
       # doit pas creer un topic en silence.
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      # Le flux Wikipedia produit environ 1 Mo par minute. Les messages sont
-      # supprimes apres 24 h (7 jours par defaut) pour ne pas remplir le disque.
+      # Le flux Wikipedia produit environ 1 Mo par minute. On abaisse la duree
+      # de conservation de 7 jours (defaut) a 24 h, pour ne pas remplir le
+      # disque. Kafka supprime par blocs entiers : en pratique, il garde donc
+      # les messages plus longtemps que 24 h.
       KAFKA_LOG_RETENTION_HOURS: "24"
       # Par defaut, un groupe de consommateurs attend 3 s avant de demarrer.
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
