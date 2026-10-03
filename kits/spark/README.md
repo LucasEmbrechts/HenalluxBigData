@@ -183,6 +183,30 @@ Les fonctions comme `col`, `avg` ou `round` s'importent depuis `pyspark.sql.func
 from pyspark.sql.functions import avg, col, round
 ```
 
+### La liste complète
+
+Ce tableau ne montre qu'une poignée d'opérations. Spark en propose plusieurs centaines :
+dates, textes, statistiques, fenêtres, tableaux imbriqués…
+
+| Où chercher | Ce qu'on y trouve |
+|---|---|
+| [Les fonctions](https://archive.apache.org/dist/spark/docs/3.5.1/api/python/reference/pyspark.sql/functions.html) | tout ce qui s'importe de `pyspark.sql.functions` : `avg`, `when`, `round`, `year`, `upper`, `split`… |
+| [Les méthodes du DataFrame](https://archive.apache.org/dist/spark/docs/3.5.1/api/python/reference/pyspark.sql/dataframe.html) | tout ce qui s'écrit après un point : `.filter()`, `.groupBy()`, `.join()`, `.write`… |
+| [Les fonctions SQL](https://archive.apache.org/dist/spark/docs/3.5.1/sql-ref-functions-builtin.html) | les mêmes, utilisables dans `spark.sql("…")` |
+
+Ces trois pages documentent **Spark 3.5.1**, la version du kit. La documentation de la
+dernière version de Spark est sur [spark.apache.org/docs/latest](https://spark.apache.org/docs/latest/api/python/reference/index.html) :
+elle est plus agréable à parcourir, mais certaines fonctions qu'elle décrit n'existent pas
+encore en 3.5.1.
+
+> **Astuce** : dans le shell `pyspark` (section 7), on peut lire l'aide d'une fonction sans
+> quitter le terminal. Il faut l'importer d'abord :
+>
+> ```python
+> from pyspark.sql.functions import avg
+> help(avg)
+> ```
+
 ---
 
 ## 5. Le même calcul, en SQL
