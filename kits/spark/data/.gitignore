@@ -1,0 +1,4 @@
+# Le jeu de donnees meteo de 1900 n'est pas versionne : 152 Mo, au-dela de la
+# limite de 100 Mo de GitHub. Il se telecharge en une commande, voir le README.
+1900.csv
+1900.csv.gz

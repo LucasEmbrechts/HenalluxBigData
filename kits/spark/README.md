@@ -29,12 +29,49 @@ docker compose up -d
 
 Un seul conteneur démarre, `spark` : c'est votre machine de travail. Tout se passe dedans, et vous n'avez ni Java ni Spark à installer.
 
-Le dossier [data/](data/) contient deux fichiers, que le conteneur voit sous `/data` :
+Le dossier [data/](data/) est partagé avec le conteneur, qui le voit sous `/data` :
 
 | Fichier | Contenu |
 |---|---|
 | [trajets.csv](data/trajets.csv) | 5 000 relevés : `camion_id,vitesse,temp_moteur` — les mêmes que dans les autres kits |
 | [camions.csv](data/camions.csv) | 25 camions : `camion_id,chauffeur,depot` — des données fictives, pour faire une jointure |
+| `1900.csv` | 4,68 millions de relevés météo du monde entier, pour l'année 1900 — à télécharger, voir ci-dessous |
+
+### Télécharger les données météo
+
+Ce fichier fait 152 Mo : trop pour GitHub, qui refuse au-delà de 100 Mo. Il n'est donc pas
+dans le dépôt, mais il se récupère en une commande, depuis le site de la NOAA, l'agence
+météorologique américaine :
+
+`https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/1900.csv.gz`
+
+20 Mo à télécharger, puis à décompresser.
+
+Vous obtenez `data/1900.csv`, le fichier qu'attendent les exercices.
+
+### Ce que contient ce fichier
+
+Il n'a **pas de ligne d'en-tête** : les huit colonnes sont définies par la documentation
+de la NOAA, [readme-by_year.txt](https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/readme-by_year.txt).
+
+| Colonne | Contenu |
+|---|---|
+| 1 | identifiant de la station, 11 caractères |
+| 2 | date, au format `AAAAMMJJ` |
+| 3 | type de mesure : `TMAX`, `TMIN`, `PRCP`, `SNOW`… |
+| 4 | la valeur mesurée |
+| 5 | drapeau de mesure |
+| 6 | drapeau de qualité : vide si le relevé a passé les contrôles |
+| 7 | drapeau de source |
+| 8 | heure d'observation |
+
+
+La signification de chaque code — types de mesures, unités, drapeaux — est dans la
+[documentation complète de GHCN-Daily](https://www.ncei.noaa.gov/pub/data/ghcn/daily/readme.txt),
+à la section III.
+
+> Les fichiers des autres années sont au même endroit, de 1750 à aujourd'hui. Les plus
+> récents dépassent le gigaoctet : de quoi voir Spark travailler pour de bon.
 
 ---
 
