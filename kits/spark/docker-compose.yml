@@ -13,11 +13,10 @@ services:
     hostname: spark
     command: ["tail", "-f", "/dev/null"]
     environment:
-      # spark-submit et pyspark utilisables sans chemin complet
       PATH: "/opt/spark/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     volumes:
-      - ./data:/data                # les donnees
-      - ./job:/job                  # vos programmes
-      - ./exercices:/exercices      # les corrections des exercices
-      - ./sortie:/sortie            # les fichiers produits par vos programmes
-      - ./conf:/opt/spark/conf:ro   # moins de messages a l'ecran
+      - ./data:/data
+      - ./job:/job
+      - ./exercices:/exercices
+      - ./sortie:/sortie
+      - ./conf:/opt/spark/conf:ro
