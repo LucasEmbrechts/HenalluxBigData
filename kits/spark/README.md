@@ -43,7 +43,7 @@ Ce fichier fait 152 Mo : trop pour GitHub, qui refuse au-delà de 100 Mo. Il n'e
 dans le dépôt, mais il se récupère en une commande, depuis le site de la NOAA, l'agence
 météorologique américaine :
 
-`https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/1900.csv.gz`
+https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/1900.csv.gz
 
 20 Mo à télécharger, puis à décompresser.
 
