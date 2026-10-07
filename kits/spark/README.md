@@ -209,7 +209,7 @@ encore en 3.5.9.
 
 ---
 
-## 5. Le même calcul, en SQL
+## 5. Le même calcul en SQL
 
 Spark comprend aussi le SQL. Il faut d'abord donner un nom de table au DataFrame :
 
@@ -225,7 +225,7 @@ spark.sql("""
 """).show(10)
 ```
 
-Le résultat est **identique** à la version DataFrame, et Spark exécute exactement le même calcul. On choisit la façon d'écrire la plus lisible : le SQL pour une requête classique, les méthodes chaînées quand le calcul se construit en plusieurs morceaux dans un programme.
+Le résultat est identique à la version DataFrame, et Spark exécute exactement le même calcul. On choisit la façon d'écrire la plus lisible : le SQL pour une requête classique, les méthodes chaînées quand le calcul se construit en plusieurs morceaux dans un programme.
 
 > Les triples guillemets `"""…"""` permettent d'écrire un texte sur plusieurs lignes en Python : la requête SQL garde ainsi sa mise en forme habituelle.
 
@@ -250,20 +250,18 @@ ls sortie/exces-par-depot
 _SUCCESS   part-00000-24e278c1-….csv
 ```
 
-Deux surprises, et elles sont normales :
-
-- **Spark écrit un dossier, pas un fichier.** Il écrit **un fichier par partition** — ici une seule, car le résultat est minuscule. Sur un cluster, chaque machine écrit sa part en parallèle, d'où ce découpage. `_SUCCESS` est un fichier témoin : il signale que l'écriture s'est bien terminée.
+- **Spark écrit un dossier, pas un fichier.** Il écrit un fichier par partition : ici une seule, car le résultat est minuscule. Sur un cluster, chaque machine écrit sa part en parallèle, d'où ce découpage. `_SUCCESS` est un fichier témoin : il signale que l'écriture s'est bien terminée.
 - **`mode("overwrite")`** remplace le dossier s'il existe déjà. Sans cette option, Spark refuse d'écrire sur un dossier existant.
 
-**Parquet** est le format de fichier standard du Big Data : il range les données **par colonne**, ce qui le rend bien plus compact et bien plus rapide à lire qu'un CSV dès que les volumes grandissent. Spark le lit avec `spark.read.parquet(...)`.
+Parquet est le format de fichier standard du Big Data : il range les données par colonne, ce qui le rend bien plus compact et bien plus rapide à lire qu'un CSV dès que les volumes grandissent. Spark le lit avec `spark.read.parquet(...)`.
 
-> **Sous Linux**, l'écriture dans `sortie/` peut échouer pour une question de droits, car le conteneur n'utilise pas votre compte. Dans ce cas, ajoutez `user: root` au service `spark` dans [docker-compose.yml](docker-compose.yml).
+> Sous Linux, l'écriture dans `sortie/` peut échouer pour une question de droits, car le conteneur n'utilise pas votre compte. Dans ce cas, ajoutez `user: root` au service `spark` dans [docker-compose.yml](docker-compose.yml).
 
 ---
 
 ## 7. Essayer des commandes une par une
 
-Pour expérimenter sans écrire de fichier, ouvrez le **shell Spark** :
+Pour expérimenter sans écrire de fichier, ouvrez le shell Spark :
 
 ```bash
 docker exec -it spark pyspark
@@ -301,16 +299,6 @@ from pyspark.sql import SparkSession
 
 spark = SparkSession.builder.appName("Mon calcul").getOrCreate()
 ```
-
----
-
-## Ce qu'il faut retenir
-
-1. **Un DataFrame est un tableau** : des colonnes nommées et typées, comme une table SQL.
-2. **On enchaîne des transformations** (`filter`, `groupBy`, `orderBy`…), et **une action** (`show`, `count`, `write`) déclenche le calcul.
-3. **Deux écritures pour le même calcul** : les méthodes Python, ou le SQL. Spark fait exactement la même chose.
-4. **Le code ne change pas avec la taille des données** : le même programme tourne sur votre machine ou sur un cluster de cent machines, comme dans le kit [kits/hadoop/spark](../hadoop/spark/).
-
 ---
 
 ## Arrêter
