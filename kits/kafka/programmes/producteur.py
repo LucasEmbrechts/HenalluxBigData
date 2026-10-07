@@ -18,11 +18,9 @@ KAFKA = os.environ.get("KAFKA", "localhost:9092")
 
 producteur = Producer({"bootstrap.servers": KAFKA})
 
-# Un topic, c'est un journal où Kafka note les messages dans l'ordre d'arrivée.
-# On ajoute toujours à la fin, et on ne modifie ni ne supprime jamais un message déjà écrit
-# Sans topic, les messages seraient perdus sans aucun message d'erreur.
+
 if "wikipedia" not in producteur.list_topics(timeout=10).topics:
-    raise SystemExit("Le topic 'wikipedia' n'existe pas : creez-le d'abord (section 2 du README).")
+    raise SystemExit("Le topic 'wikipedia' n'existe pas")
 
 flux = requests.get(SOURCE, stream=True, headers=ENTETES)
 

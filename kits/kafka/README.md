@@ -43,15 +43,6 @@ Deux conteneurs démarrent :
 
 ## 2. Créer un topic
 
-Le vocabulaire de base :
-
-| Mot | Ce que c'est |
-|---|---|
-| **message** | une donnée envoyée dans Kafka — ici, une modification de Wikipédia |
-| **topic** | une « boîte » qui regroupe des messages du même type, avec un nom |
-| **producteur** | un programme qui **envoie** des messages dans un topic |
-| **consommateur** | un programme qui **lit** les messages d'un topic |
-
 Créez le topic `wikipedia` :
 
 ```bash
@@ -61,8 +52,6 @@ docker exec kafka kafka-topics.sh --bootstrap-server localhost:9092 --create --t
 Vous devez lire `Created topic wikipedia.`
 
 > `--bootstrap-server localhost:9092` revient dans toutes les commandes : c'est l'adresse du serveur Kafka. Si vous lisez `Connection refused`, Kafka n'a pas fini de démarrer : attendez dix secondes et recommencez.
-
-`--partitions 3` découpe le topic en **trois morceaux**, appelés **partitions**. On verra à la section 6 à quoi ça sert.
 
 ---
 
@@ -243,81 +232,6 @@ Ouvrez [http://localhost:8080](http://localhost:8080), puis cliquez sur le clust
 - **Topics → wikipedia → Messages** : les messages, en direct.
 - **Topics → wikipedia → Overview** : le nombre de messages dans chaque partition. Vous y verrez le déséquilibre expliqué plus haut.
 - **Consumers → lecteurs** : quel consommateur lit quelle partition, et son **retard** (colonne *Lag*) : le nombre de messages arrivés mais pas encore lus.
-
----
-
-## 8. Pourquoi autant de réglages dans le docker-compose.yml ?
-
-En ouvrant [docker-compose.yml](docker-compose.yml), vous verrez une quinzaine de lignes de configuration. Elles disent toutes **la même chose** : « tu es tout seul ».
-
-Kafka est conçu pour tourner sur plusieurs machines. C'est son cas normal, et c'est donc ce qu'il suppose par défaut. Faire tourner un seul serveur est, pour lui, le cas particulier — qu'il faut déclarer explicitement, sinon il refuse de démarrer.
-
-Ces lignes se répartissent en deux groupes.
-
-### « Je suis le seul serveur, et je fais tout »
-
-```yaml
-KAFKA_NODE_ID: "1"                              # je suis le serveur n°1
-KAFKA_PROCESS_ROLES: "broker,controller"        # je fais les deux métiers
-KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"  # la liste des votants, c'est moi
-```
-
-Un serveur Kafka peut tenir deux rôles :
-
-| Rôle | Ce qu'il fait |
-|---|---|
-| **broker** | reçoit les messages, les stocke, répond aux consommateurs |
-| **controller** | tient la liste des topics et des partitions, et désigne qui est responsable de quoi |
-
-Dans un vrai cluster, ces rôles sont souvent séparés : quelques machines contrôleurs, et beaucoup de brokers. Les contrôleurs **élisent** entre eux un chef, et le remplacent automatiquement s'il tombe : c'est le rôle de la liste des votants. Depuis Kafka 4, ce mécanisme — appelé **KRaft** — remplace ZooKeeper, qui assurait ce travail auparavant.
-
-Ici, une seule machine fait les deux métiers, et la liste des votants ne contient qu'elle-même : elle vote pour elle, elle est élue, et on n'en parle plus.
-
-### « Une seule copie de chaque donnée »
-
-```yaml
-KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
-KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-...
-```
-
-Par défaut, Kafka garde **3 copies** de chaque partition, sur 3 machines différentes : si l'une tombe, les données restent disponibles. Avec un seul serveur, c'est impossible : il faut lui demander de se contenter d'une copie.
-
-**Conséquence à garder en tête** : ce kit n'a aucune tolérance aux pannes. Si le conteneur s'arrête, plus rien ne fonctionne. C'est acceptable pour apprendre, jamais en production.
-
----
-
-## Ce qu'il faut retenir
-
-1. **Kafka transporte des données en mouvement**, entre des producteurs qui envoient et des consommateurs qui lisent. Les deux ne se connaissent pas.
-2. **Lire un message ne le supprime pas.** Plusieurs programmes, dans des groupes différents, peuvent lire le même topic.
-3. **Kafka retient où chaque groupe en est.** Un consommateur arrêté reprend là où il s'était arrêté.
-4. **Les partitions permettent de partager le travail** entre plusieurs consommateurs d'un même groupe.
-
----
-
-## Utiliser Kafka dans votre projet
-
-Les deux programmes de ce kit sont un bon point de départ : gardez la partie Kafka, et remplacez Wikipédia par votre propre source de données.
-
-Pour aller plus loin, deux projets d'exemple relient ce flux à d'autres technologies :
-
-| Projet | Ce qu'il montre |
-|---|---|
-| [kafka-mongodb](../../sample%20projects/kafka-mongodb/) | un consommateur qui enregistre les messages dans MongoDB |
-| [kafka-spark](../../sample%20projects/kafka-spark/) | Spark qui calcule en continu sur le flux Kafka |
-
-Pour lancer un programme **directement sur votre machine** plutôt que dans Docker :
-
-```bash
-pip install confluent-kafka requests
-```
-
-```bash
-python programmes/consommateur.py
-```
-
-Le programme se connecte alors à `localhost:9092`. Dans Docker, il utilisait `kafka:19092` : un conteneur ne peut pas joindre Kafka par `localhost`, qui désigne le conteneur lui-même.
 
 ---
 

@@ -1,7 +1,4 @@
 # Image pour lancer les programmes Python du kit sans installer Python.
-# Les programmes eux-memes ne sont pas copies dans l'image : le dossier
-# programmes/ est monte dans le conteneur (voir docker-compose.yml), donc une
-# modification des .py est prise en compte sans reconstruire l'image.
 
 FROM python:3.13-slim
 
