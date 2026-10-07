@@ -70,9 +70,6 @@ La signification de chaque code — types de mesures, unités, drapeaux — est 
 [documentation complète de GHCN-Daily](https://www.ncei.noaa.gov/pub/data/ghcn/daily/readme.txt),
 à la section III.
 
-> Les fichiers des autres années sont au même endroit, de 1750 à aujourd'hui. Les plus
-> récents dépassent le gigaoctet : de quoi voir Spark travailler pour de bon.
-
 ---
 
 ## 2. Lancer un programme
